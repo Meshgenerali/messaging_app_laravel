@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Conversation;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\Group;
 use App\Models\Message;
 use Carbon\Carbon;
@@ -17,8 +16,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
+        // Create admin and regular users
         User::factory()->create([
             'name' => 'John Doe',
             'email' => 'john@example.com',
@@ -34,19 +32,22 @@ class DatabaseSeeder extends Seeder
 
         User::factory(10)->create();
 
+        // Create groups and attach users
         for ($i = 0; $i < 5; $i++) {
             $group = Group::factory()->create([
                 'owner_id' => 1,
             ]);
 
-            $users = User::inRandomOrder()->limit(rand(2, 5))->pluck('id');
-            $group->users()->attach(array_unique([1, $users]));
+            $users = User::inRandomOrder()->limit(rand(2, 5))->pluck('id')->toArray();
+            $group->users()->attach(array_unique(array_merge([1], $users)));
         }
 
+        // Create messages
         Message::factory(1000)->create();
-        $messages = Message::whereNull('group_id')->orderBy('created_at')->get();
 
-        $conversations = $messages->groupBy(function($message){
+        // Create conversations based on messages
+        $messages = Message::whereNull('group_id')->orderBy('created_at')->get();
+        $conversations = $messages->groupBy(function($message) {
             return collect([$message->sender_id, $message->receiver_id])->sort()->implode('_');
         })->map(function($groupedMessages) {
             return [
@@ -59,6 +60,5 @@ class DatabaseSeeder extends Seeder
         })->values();
 
         Conversation::insertOrIgnore($conversations->toArray());
-
     }
 }
